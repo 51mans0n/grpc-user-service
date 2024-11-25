@@ -3,34 +3,34 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/51mans0n/grpc-user-service/api/proto/userpb"
 	"log"
 	"net"
 	"sync"
 
-	pb "github.com/51mans0n/grpc-user-service/proto/userpb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
 
 type userServer struct {
-	pb.UnimplementedUserServiceServer
+	userpb.UnimplementedUserServiceServer
 	mu     sync.Mutex
-	users  map[int64]*pb.User
+	users  map[int64]*userpb.User
 	nextID int64
 }
 
 func newServer() *userServer {
 	return &userServer{
-		users: make(map[int64]*pb.User),
+		users: make(map[int64]*userpb.User),
 	}
 }
 
-func (s *userServer) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb.CreateUserResponse, error) {
+func (s *userServer) CreateUser(ctx context.Context, req *userpb.CreateUserRequest) (*userpb.CreateUserResponse, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	s.nextID++
-	user := &pb.User{
+	user := &userpb.User{
 		Id:    s.nextID,
 		Name:  req.GetName(),
 		Email: req.GetEmail(),
@@ -38,10 +38,10 @@ func (s *userServer) CreateUser(ctx context.Context, req *pb.CreateUserRequest) 
 	s.users[user.Id] = user
 
 	log.Printf("Created user: %v", user)
-	return &pb.CreateUserResponse{User: user}, nil
+	return &userpb.CreateUserResponse{User: user}, nil
 }
 
-func (s *userServer) GetUser(ctx context.Context, req *pb.GetUserRequest) (*pb.GetUserResponse, error) {
+func (s *userServer) GetUser(ctx context.Context, req *userpb.GetUserRequest) (*userpb.GetUserResponse, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -51,27 +51,27 @@ func (s *userServer) GetUser(ctx context.Context, req *pb.GetUserRequest) (*pb.G
 	}
 
 	log.Printf("Retrieved user: %v", user)
-	return &pb.GetUserResponse{User: user}, nil
+	return &userpb.GetUserResponse{User: user}, nil
 }
 
-func (s *userServer) DeleteUser(ctx context.Context, req *pb.DeleteUserRequest) (*pb.DeleteUserResponse, error) {
+func (s *userServer) DeleteUser(ctx context.Context, req *userpb.DeleteUserRequest) (*userpb.DeleteUserResponse, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	_, exists := s.users[req.GetId()]
 	if !exists {
-		return &pb.DeleteUserResponse{Success: false}, fmt.Errorf("user with ID %d not found", req.GetId())
+		return &userpb.DeleteUserResponse{Success: false}, fmt.Errorf("user with ID %d not found", req.GetId())
 	}
 
 	delete(s.users, req.GetId())
 	log.Printf("Deleted user with ID: %d", req.GetId())
-	return &pb.DeleteUserResponse{Success: true}, nil
+	return &userpb.DeleteUserResponse{Success: true}, nil
 }
 
 func main() {
 	// Загрузка сертификатов
-	certFile := "certs/server.crt"
-	keyFile := "certs/server.key"
+	certFile := "../../certs/server.crt"
+	keyFile := "../../certs/server.key"
 	creds, err := credentials.NewServerTLSFromFile(certFile, keyFile)
 	if err != nil {
 		log.Fatalf("Failed to load TLS credentials: %v", err)
@@ -79,7 +79,7 @@ func main() {
 
 	// Создание gRPC-сервера с TLS
 	grpcServer := grpc.NewServer(grpc.Creds(creds))
-	pb.RegisterUserServiceServer(grpcServer, newServer())
+	userpb.RegisterUserServiceServer(grpcServer, newServer())
 
 	// Прослушивание на порту 50051
 	lis, err := net.Listen("tcp", ":50051")

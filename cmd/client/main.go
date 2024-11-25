@@ -4,19 +4,18 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
+	"github.com/51mans0n/grpc-user-service/api/proto/userpb"
 	"io/ioutil"
 	"log"
 	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
-
-	pb "github.com/51mans0n/grpc-user-service/proto/userpb"
 )
 
 func main() {
 	// Загрузка корневого сертификата
-	certFile := "certs/server.crt"
+	certFile := "../../certs/server.crt"
 	cert, err := ioutil.ReadFile(certFile)
 	if err != nil {
 		log.Fatalf("Failed to read certificate: %v", err)
@@ -38,13 +37,13 @@ func main() {
 	}
 	defer conn.Close()
 
-	client := pb.NewUserServiceClient(conn)
+	client := userpb.NewUserServiceClient(conn)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
 	// Создаём нового пользователя
-	createResp, err := client.CreateUser(ctx, &pb.CreateUserRequest{
+	createResp, err := client.CreateUser(ctx, &userpb.CreateUserRequest{
 		Name:  "John Doe",
 		Email: "john.doe@example.com",
 	})
@@ -55,7 +54,7 @@ func main() {
 	fmt.Printf("Created user: %v\n", createResp.GetUser())
 
 	// Получаем информацию о пользователе
-	getResp, err := client.GetUser(ctx, &pb.GetUserRequest{
+	getResp, err := client.GetUser(ctx, &userpb.GetUserRequest{
 		Id: userID,
 	})
 	if err != nil {
@@ -64,7 +63,7 @@ func main() {
 	fmt.Printf("Retrieved user: %v\n", getResp.GetUser())
 
 	// Удаляем пользователя
-	deleteResp, err := client.DeleteUser(ctx, &pb.DeleteUserRequest{
+	deleteResp, err := client.DeleteUser(ctx, &userpb.DeleteUserRequest{
 		Id: userID,
 	})
 	if err != nil {
